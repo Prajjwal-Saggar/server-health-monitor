@@ -1,12 +1,12 @@
 # Server Health Monitor
 
-A lightweight Bash script that checks the vital signs of a Linux server — disk, RAM, CPU, network, and critical services — and flags anything that crosses a configurable threshold.
+A lightweight Bash script that checks the vital signs of a Linux server — disk, RAM, CPU, network, and critical services — and flags anything that crosses a configurable threshold. Every check is also written to a timestamped log file, and the script exits with a status code reflecting overall health, so it can be wired into cron, monitoring tools, or CI pipelines later.
 
-No dependencies, no dashboard, no daemon. Just `bash server-health.sh` and you get a straight answer.
+No external dependencies, no daemon. Just `bash server-health.sh` and you get a straight answer — on screen and in the log.
 
 ## Why I built this
 
-I kept SSH-ing into my own machine and running the same five commands over and over — `df -h`, `free`, `top`, a ping, a couple of `systemctl status` checks — just to answer "is everything okay?" This script is that five-minute ritual compressed into one command.
+I kept SSH-ing into my own machine and running the same five commands over and over — `df -h`, `free`, `top`, a ping, a couple of `systemctl status` checks — just to answer "is everything okay?" This script is that five-minute ritual compressed into one command. Logging came next, once I realized a point-in-time check isn't useful if you can't look back at what happened an hour or a day ago.
 
 ## What it checks
 
@@ -16,7 +16,30 @@ I kept SSH-ing into my own machine and running the same five commands over and o
 - **Network connectivity** — a single ping to confirm the box is actually online
 - **Service status** — checks whether `docker`, `ssh`, `cron`, and `rsyslog` are active via `systemctl is-active`
 
-Each metric prints a clear `WARNING` line if it crosses its threshold, or confirms it's normal if not.
+Each metric prints a clear `WARNING` line if it crosses its threshold, or confirms it's normal if not — and every line is mirrored to the log file with a timestamp.
+
+## Logging & exit codes
+
+Every run appends a timestamped entry for each check to `logs/server_health.log`, so you get a running history instead of just a snapshot:
+
+```
+09/12/26 14:32 | Server Health Checkup Started
+09/12/26 14:32 | Hostname: prajjwal-ubuntu
+09/12/26 14:32 | Disk Usage: 42%
+09/12/26 14:32 | Disk usage is normal
+09/12/26 14:32 | RAM Usage: 42%
+09/12/26 14:32 | RAM usage is normal
+09/12/26 14:32 | CPU Usage: 12.3%
+09/12/26 14:32 | CPU usage is normal
+09/12/26 14:32 | NETWORK CONNECTED
+09/12/26 14:32 | docker: RUNNING
+09/12/26 14:32 | ssh: RUNNING
+09/12/26 14:32 | cron: RUNNING
+09/12/26 14:32 | rsyslog: RUNNING
+09/12/26 14:32 | Server Health Checkup Completed
+```
+
+The script also exits with a status code — `0` if everything's healthy, `1` if any check failed or crossed a threshold — so it can be dropped into a cron job or a CI/CD pipeline and treated as a pass/fail gate, not just something a human has to read.
 
 ## Sample output
 
@@ -83,12 +106,12 @@ chmod +x server-health.sh
 - **Bash doesn't do floating-point math natively** — the CPU percentage calculation needed `awk "BEGIN {...}"` since Bash's arithmetic only handles integers.
 - **Sourcing a config file** (`source config/health.conf`) is a simple, clean way to separate configuration from logic, and it's a pattern I now default to instead of hardcoding values.
 - **`systemctl is-active --quiet`** is a much cleaner way to check service state in a script than parsing the full `systemctl status` output.
+- **Exit codes are how scripts talk to other scripts.** Adding `HEALTH_STATUS` and exiting with it (instead of always exiting `0`) is what turns this from "a script a human reads" into "a script cron or a CI pipeline can act on."
+- **Appending to a log file with `>>`** while still printing to screen with `echo` meant duplicating each line — worth revisiting with a helper function that does both at once instead of writing every check twice.
 
 ## What's next
 
-Right now this only checks the local machine it's run on. Planned next steps:
 - Remote checks over SSH for multiple servers from one place
-- Optional logging to a file with timestamps, so I can track trends instead of just a point-in-time snapshot
-- Slack/webhook alerting when a threshold is breached, instead of just printing to the terminal
-
-
+- Slack/webhook alerting when a threshold is breached, instead of just relying on the log file
+- Log rotation, so `server_health.log` doesn't grow unbounded over time
+- A helper function to cut down the repeated `echo ... | tee -a` style duplication between screen output and logging
