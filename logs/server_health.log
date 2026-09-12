@@ -1,0 +1,15 @@
+09/12/26 22:04 | Server Health Checkup Started
+09/12/26 22:04 | Hostname: prajjwal-ubuntu
+09/12/26 22:04 | Disk Usage: 2%
+09/12/26 22:04 | Disk usage is normal
+09/12/26 22:04 | RAM Usage: 27%
+09/12/26 22:04 | RAM usage is normal
+09/12/26 22:04 | CPU Usage: 5.2%
+09/12/26 22:04 | CPU usage is normal
+09/12/26 22:04 | NETWORK CONNECTED
+09/12/26 22:04 | Docker: Not Running
+09/12/26 22:04 | docker: NOT RUNNING
+09/12/26 22:04 | ssh: NOT RUNNING
+09/12/26 22:04 | cron: RUNNING
+09/12/26 22:04 | rsyslog: RUNNING
+09/12/26 22:04 | Server Health Checkup Completed
